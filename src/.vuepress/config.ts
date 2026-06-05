@@ -9,6 +9,16 @@ export default defineUserConfig({
   title: "zhuonixian",
   description: "记录所思所想",
 
+  head: [
+    ["link", { rel: "icon", href: "/favicon.ico" }],
+    ["meta", { name: "theme-color", content: "#5c92d1" }],
+    ["meta", { name: "apple-mobile-web-app-capable", content: "yes" }],
+    [
+      "meta",
+      { name: "apple-mobile-web-app-status-bar-style", content: "white" },
+    ],
+  ],
+
   bundler: viteBundler(),
 
   theme,

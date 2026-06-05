@@ -20,12 +20,14 @@ export default hopeTheme({
 
   footer: "默认页脚",
   displayFooter: true,
+  copyright: "MIT 协议，© 2024-至今 zhuonixian",
 
   blog: {
     description: "记录所思所想",
     intro: "/intro.html",
     medias: {
       GitHub: "https://github.com/zhuonixian",
+      Email: "mailto:zhuonixian@outlook.com",
     },
   },
 
@@ -64,8 +66,19 @@ export default hopeTheme({
 
   plugins: {
     blog: true,
+
+    feed: {
+      rss: true,
+      atom: true,
+      json: true,
+    },
+
+    sitemap: {
+      hostname: "https://zhuonixian.pages.dev",
+    },
+
     components: {
-      components: ["Badge", "VPCard"],
+      components: ["Badge", "VPCard", "SiteInfo"],
     },
     icon: {
       prefix: "fa6-solid:",

@@ -46,6 +46,49 @@ export default navbar([
           { text: "Linux 常用技巧", icon: "pen-to-square", link: "linux-tips" },
         ],
       },
+      {
+        text: "AI Wiki",
+        icon: "brain",
+        prefix: "wiki/",
+        children: [
+          {
+            text: "概念",
+            icon: "lightbulb",
+            prefix: "concepts/",
+            children: "structure",
+          },
+          {
+            text: "主题",
+            icon: "folder-open",
+            prefix: "topics/",
+            children: "structure",
+          },
+          {
+            text: "对比",
+            icon: "code-compare",
+            prefix: "comparisons/",
+            children: "structure",
+          },
+          {
+            text: "公司人物",
+            icon: "building",
+            prefix: "entities/",
+            children: "structure",
+          },
+          {
+            text: "指南",
+            icon: "book-open",
+            prefix: "guides/",
+            children: "structure",
+          },
+          {
+            text: "综合分析",
+            icon: "chart-line",
+            prefix: "synthesis/",
+            children: "structure",
+          },
+        ],
+      },
     ],
   },
 ]);

@@ -3,3 +3,15 @@
   --theme-color-light: #8ab4e8;
   --theme-color-dark: #3a6fad;
 }
+
+// hero 背景图：移除遮罩，保持原始色彩
+.vp-hero-mask {
+  opacity: 0 !important;
+  background: transparent !important;
+}
+
+.vp-blog-hero {
+  // 确保背景图完全覆盖
+  background-size: cover !important;
+  background-position: center !important;
+}

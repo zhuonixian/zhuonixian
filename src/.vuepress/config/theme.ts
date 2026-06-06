@@ -10,7 +10,7 @@ export default hopeTheme({
     url: "https://zhuonixian.pages.dev",
   },
 
-  logo: "/images/logo.png",
+  logo: "/images/logo.svg",
 
   repo: "zhuonixian/zhuonixian",
   docsDir: "src",

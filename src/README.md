@@ -5,7 +5,7 @@ icon: house
 title: 博客主页
 heroText: zhuonixian
 heroFullScreen: true
-heroImage: /images/hero-bg.svg
+heroImage: /images/logo.svg
 tagline: 记录所思所想
 bgImage: /images/hero-bg.svg
 projects:

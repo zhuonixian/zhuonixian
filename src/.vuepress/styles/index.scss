@@ -14,4 +14,11 @@
   // 确保背景图完全覆盖
   background-size: cover !important;
   background-position: center !important;
+
+  // 头像圆形显示
+  .vp-hero-image {
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    max-width: 200px !important;
+  }
 }

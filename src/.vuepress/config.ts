@@ -10,7 +10,7 @@ export default defineUserConfig({
   description: "记录所思所想",
 
   head: [
-    ["link", { rel: "icon", href: "/favicon.ico" }],
+    ["link", { rel: "icon", href: "/icons/favicon.ico" }],
     ["meta", { name: "theme-color", content: "#5c92d1" }],
     ["meta", { name: "apple-mobile-web-app-capable", content: "yes" }],
     [

@@ -5,9 +5,9 @@ icon: house
 title: 博客主页
 heroText: zhuonixian
 heroFullScreen: true
-heroImage: /hero-bg.svg
+heroImage: /images/hero-bg.svg
 tagline: 记录所思所想
-bgImage: /hero-bg.svg
+bgImage: /images/hero-bg.svg
 projects:
   - icon: fa6-brands:vuejs
     name: VuePress Theme Hope

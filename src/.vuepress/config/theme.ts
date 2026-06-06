@@ -67,8 +67,9 @@ export default hopeTheme({
   plugins: {
     blog: true,
 
-    searchPro: {
+    slimsearch: {
       indexContent: true,
+      suggest: true,
     },
 
     feed: {

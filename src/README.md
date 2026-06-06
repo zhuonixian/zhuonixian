@@ -6,6 +6,11 @@ title: 博客主页
 heroText: zhuonixian
 heroFullScreen: true
 heroImage: /images/logo.svg
+heroImageStyle:
+  border-radius: 50%
+  width: 200px
+  height: 200px
+  object-fit: cover
 tagline: 记录所思所想
 bgImage: /images/hero-bg.svg
 projects:

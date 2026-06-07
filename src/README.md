@@ -5,14 +5,14 @@ icon: house
 title: 博客主页
 heroText: zhuonixian
 heroFullScreen: true
-heroImage: /images/logo.svg
+heroImage: /images/logo.png
 heroImageStyle:
   border-radius: 50%
   width: 200px
   height: 200px
   object-fit: cover
 tagline: 记录所思所想
-bgImage: /images/hero-bg.svg
+bgImage: /images/hero-bg.png
 projects:
   - icon: fa6-brands:vuejs
     name: VuePress Theme Hope

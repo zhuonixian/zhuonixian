@@ -1,6 +1,7 @@
 ---
 title: 本地 GPU 环境搭建与大模型训练指南
 icon: desktop
+order: 1
 date: 2026-06-13
 category:
   - 技术

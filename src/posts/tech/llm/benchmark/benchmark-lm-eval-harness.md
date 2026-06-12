@@ -1,6 +1,7 @@
 ---
 title: lm-evaluation-harness：开源大模型评测利器
 icon: flask-vial
+order: 3
 date: 2026-06-13
 category:
   - 技术

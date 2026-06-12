@@ -1,6 +1,7 @@
 ---
 title: 大模型评测体系总览：从 MMLU 到 Chatbot Arena
 icon: chart-bar
+order: 1
 date: 2026-06-13
 category:
   - 技术

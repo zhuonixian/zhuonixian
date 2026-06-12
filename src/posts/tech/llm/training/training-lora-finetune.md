@@ -1,6 +1,7 @@
 ---
 title: LoRA 微调原理与 LLM 本地微调实践
 icon: microchip
+order: 2
 date: 2026-06-13
 category:
   - 技术

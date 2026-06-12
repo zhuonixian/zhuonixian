@@ -1,6 +1,7 @@
 ---
 title: 本地大模型评测实战：从搭建到出报告
 icon: clipboard-check
+order: 6
 date: 2026-06-13
 category:
   - 技术

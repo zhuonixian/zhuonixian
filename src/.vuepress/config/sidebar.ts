@@ -71,7 +71,22 @@ export default sidebar({
       icon: "chart-bar",
       prefix: "posts/tech/llm/",
       collapsible: true,
-      children: "structure",
+      children: [
+        {
+          text: "LLM 评测",
+          icon: "chart-bar",
+          prefix: "benchmark/",
+          collapsible: true,
+          children: "structure",
+        },
+        {
+          text: "模型训练",
+          icon: "microchip",
+          prefix: "training/",
+          collapsible: true,
+          children: "structure",
+        },
+      ],
     },
     {
       text: "其他技术文章",

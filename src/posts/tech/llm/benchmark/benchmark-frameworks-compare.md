@@ -1,6 +1,7 @@
 ---
 title: 大模型评测框架对比与选型指南
 icon: scale-balanced
+order: 2
 date: 2026-06-13
 category:
   - 技术

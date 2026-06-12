@@ -1,6 +1,7 @@
 ---
 title: SRE 运维领域小模型微调实战
 icon: screwdriver-wrench
+order: 3
 date: 2026-06-13
 category:
   - 技术

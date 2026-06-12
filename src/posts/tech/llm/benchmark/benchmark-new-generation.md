@@ -1,6 +1,7 @@
 ---
 title: 新一代大模型评测基准：超越 MMLU 时代
 icon: rocket
+order: 5
 date: 2026-06-13
 category:
   - 技术

@@ -1,6 +1,7 @@
 ---
 title: OpenCompass：一站式大模型评测平台
 icon: magnifying-glass-chart
+order: 4
 date: 2026-06-13
 category:
   - 技术

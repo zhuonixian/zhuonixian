@@ -104,16 +104,23 @@ export default navbar([
         ],
       },
       {
-        text: "LLM 评测与训练",
+        text: "LLM 评测",
         icon: "chart-bar",
-        prefix: "tech/llm/",
+        prefix: "tech/llm/benchmark/",
         children: [
           { text: "评测体系总览", link: "benchmark-overview" },
+          { text: "框架对比与选型", link: "benchmark-frameworks-compare" },
           { text: "lm-evaluation-harness", link: "benchmark-lm-eval-harness" },
           { text: "OpenCompass", link: "benchmark-opencompass" },
           { text: "新一代评测基准", link: "benchmark-new-generation" },
           { text: "评测实战指南", link: "benchmark-practice" },
-          { text: "框架对比与选型", link: "benchmark-frameworks-compare" },
+        ],
+      },
+      {
+        text: "模型训练与微调",
+        icon: "microchip",
+        prefix: "tech/llm/training/",
+        children: [
           { text: "本地 GPU 环境搭建", link: "training-local-gpu" },
           { text: "LoRA 微调原理与实践", link: "training-lora-finetune" },
           { text: "SRE 领域模型微调", link: "training-ops-assistant" },

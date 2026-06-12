@@ -414,6 +414,167 @@ mc admin speedtest myminio --concurrent 32 --size 64MiB
 
 建议在集群上线前和定期巡检时运行性能测试，建立性能基线。
 
+## MinIO 高可用与集群部署
+
+### 高可用层级
+
+```
+MinIO 高可用的三个层级：
+
+1. 单集群纠删码（Erasure Coding）
+   ┌─────────────────────────────────────┐
+   │  节点级容错：可丢失 N/2 块盘         │
+   │  数据不丢失，服务不中断              │
+   └─────────────────────────────────────┘
+
+2. 多站点复制（Site Replication）
+   ┌─ Site A ──────┐     ┌─ Site B ──────┐
+   │  主动读写      │ ←→ │  主动读写      │
+   │  双向同步      │     │  双向同步      │
+   └───────────────┘     └───────────────┘
+
+3. 站点级故障切换（通过负载均衡器）
+   ┌─ LB ─────┐
+   │  健康检查 │
+   │  自动切换 │
+   └──┬────┬──┘
+      │    │
+┌─ Site A ─┐ ┌─ Site B ─┐
+│  Primary  │ │  Standby  │
+└───────────┘ └───────────┘
+```
+
+### 纠删码高可用详解
+
+```
+4 节点 × 4 盘的纠删码集群：
+
+┌─ Node 1 ──────────────────┐
+│  /data1  /data2  /data3  /data4 │
+│  D1      D2      P1      P2    │
+└────────────────────────────┘
+┌─ Node 2 ──────────────────┐
+│  /data1  /data2  /data3  /data4 │
+│  D3      D4      P3      P4    │
+└────────────────────────────┘
+┌─ Node 3 ──────────────────┐
+│  /data1  /data2  /data3  /data4 │
+│  P5      P6      D5      D6    │
+└────────────────────────────┘
+┌─ Node 4 ──────────────────┐
+│  /data1  /data2  /data3  /data4 │
+│  P7      P8      D7      D8    │
+└────────────────────────────┘
+
+EC:4 配置：每个对象分成 4 数据片 + 4 校验片
+可丢失任意 4 块盘（包括整个节点），数据仍可读
+读写操作：任意 4 个存活盘即可完成
+
+节点故障恢复：
+  ┌─ Node 3 宕机 ──────────┐
+  │  4 块盘全部离线         │
+  │  EC:4 可以容忍          │
+  │  → 数据仍可读写         │
+  │                         │
+  │  Node 3 恢复后：        │
+  │  → 自动检测缺失数据     │
+  │  → 从其他节点重建       │
+  │  → healing 进度可监控   │
+  └─────────────────────────┘
+```
+
+### 多站点复制（Site Replication）
+
+```
+MinIO 站点复制架构（双向同步）：
+
+┌─ Site A (北京) ────────────────────┐
+│  4 节点集群（EC:4）                 │
+│  Bucket: data-lake                 │
+│  Versioning: enabled               │
+│  ┌──────────┐    ┌──────────┐     │
+│  │ 写入对象  │    │ 同步队列  │     │
+│  │ → 本地 EC │    │ → Site B │─────│──→ Site B
+│  └──────────┘    └──────────┘     │
+└────────────────────────────────────┘
+
+┌─ Site B (上海) ────────────────────┐
+│  4 节点集群（EC:4）                 │
+│  Bucket: data-lake                 │
+│  Versioning: enabled               │
+│  ┌──────────┐    ┌──────────┐     │
+│  │ 写入对象  │    │ 同步队列  │     │
+│  │ → 本地 EC │    │ → Site A │─────│──→ Site A
+│  └──────────┘    └──────────┘     │
+└────────────────────────────────────┘
+
+配置命令：
+mc admin replicate add SiteA SiteB --replication "bucket,content,iam,config"
+
+冲突解决：
+- 使用对象版本号（Version ID）解决冲突
+- 最后写入获胜（Last Writer Wins）
+- 删除操作也会同步（通过删除标记）
+
+站点级故障切换：
+┌─ Global LB ─────────────────────┐
+│  健康检查: GET /minio/health/cluster │
+│  Site A 不可用时自动切到 Site B       │
+│  DNS 切换或负载均衡器切换              │
+└─────────────────────────────────┘
+```
+
+### MinIO on K8s 多租户部署
+
+```yaml
+# MinIO Operator 多租户部署
+apiVersion: minio.min.io/v2
+kind: Tenant
+metadata:
+  name: storage-tenant
+spec:
+  pools:
+    - servers: 4
+      volumesPerServer: 4
+      volumeClaimTemplate:
+        metadata:
+          name: data
+        spec:
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 1Ti
+      resources:
+        requests:
+          cpu: "2"
+          memory: 4Gi
+  mountPath: /data
+  requestAutoCert: true  # 自动 TLS
+  s3:
+    bucketDNS: false
+  podManagementPolicy: Parallel  # 并行启动，加速恢复
+```
+
+### 高可用配置最佳实践
+
+```
+容量规划：
+- 最少 4 节点（EC:4，容忍 4 盘故障）
+- 生产推荐 8-16 节点（EC:4，按需扩展）
+- 磁盘使用率告警阈值：80%
+
+性能保证：
+- 读写一致性：纠删码保证强一致
+- 读操作：从任意存活分片读取
+- 写操作：写入 N/2 + 1 个分片确认
+
+监控要点：
+- mc admin info 查看集群健康
+- 磁盘在线率 = 100%
+- healing 进度
+- 站点复制延迟
+```
+
 ## 常见问题排查
 
 ### 磁盘故障处理

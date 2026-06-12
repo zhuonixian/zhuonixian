@@ -176,6 +176,158 @@ session.timeout.ms=30000        # 会话超时（30秒）
 heartbeat.interval.ms=10000     # 心跳间隔
 ```
 
+## Kafka 高可用与集群部署
+
+### 分区副本与 ISR 机制
+
+Kafka 高可用的核心是分区副本（Replica）机制：
+
+```
+Topic: orders, Partitions: 3, Replication Factor: 3
+
+Partition 0:
+┌─ Broker 1 (Leader) ─────┐
+│  读写请求                 │
+│  ISR 成员                 │
+└──────────┬───────────────┘
+     ┌─────┴──────┐
+┌─ Broker 2 ──┐ ┌─ Broker 3 ──┐
+│ Follower     │ │ Follower     │
+│ ISR（同步中）│ │ ISR（同步中）│
+│ 拉取 Leader  │ │ 拉取 Leader  │
+│ 数据         │ │ 数据         │
+└──────────────┘ └──────────────┘
+
+ISR（In-Sync Replicas）：与 Leader 保持同步的副本集合
+- Follower 定期从 Leader 拉取数据
+- 落后太多的 Follower 被踢出 ISR
+- 只有 ISR 成员可以被选举为新 Leader
+- 配合 acks=all 确保数据不丢失
+```
+
+### Partition Leader 选举流程
+
+```
+Broker 1（Leader of Partition 0）宕机：
+
+  ┌───────────────────────────┐
+  │ 1. Controller 检测到       │
+  │    Broker 1 心跳超时       │
+  │    （session.timeout.ms）  │
+  └──────────────┬────────────┘
+                 ▼
+  ┌───────────────────────────┐
+  │ 2. Controller 找到        │
+  │    Partition 0 的 ISR 列表 │
+  │    [Broker 2, Broker 3]   │
+  └──────────────┬────────────┘
+                 ▼
+  ┌───────────────────────────┐
+  │ 3. 从 ISR 中选择第一个     │
+  │    存活的副本作为新 Leader │
+  │    → 选择 Broker 2        │
+  └──────────────┬────────────┘
+                 ▼
+  ┌───────────────────────────┐
+  │ 4. 更新元数据             │
+  │    Leader = Broker 2      │
+  │    通知所有 Broker         │
+  │    客户端刷新元数据        │
+  └───────────────────────────┘
+
+特殊情况：
+- ISR 为空且 unclean.leader.election.enable=false
+  → Partition 不可用（等待原 Leader 恢复）
+- ISR 为空且 unclean.leader.election.enable=true
+  → 允许非 ISR 副本成为 Leader（可能丢数据，不推荐）
+```
+
+### KRaft Controller 高可用
+
+```
+Kafka 4.0+ 的 KRaft Controller Quorum（替代 ZooKeeper）：
+
+┌─ Controller 1 (Leader) ────────┐
+│  管理集群元数据                  │
+│  处理 Partition Leader 选举     │
+│  基于 Raft 协议                 │
+└───────────┬────────────────────┘
+            │ Raft 日志复制
+      ┌─────┴──────────┐
+┌─ Controller 2 ──┐ ┌─ Controller 3 ──┐
+│ Follower        │ │ Follower        │
+│ 投票 + 元数据同步│ │ 投票 + 元数据同步│
+└─────────────────┘ └─────────────────┘
+
+KRaft 优势：
+- 无需维护 ZooKeeper（减少一套系统）
+- Controller 可水平扩展
+- 元数据变更更快（直接 Raft 复制）
+- 故障恢复更快（无 ZK 依赖）
+```
+
+### Consumer Group Rebalance
+
+```
+消费者组 Rebalance 流程（Consumer 加入或离开时）：
+
+  ┌──────────────────────────┐
+  │ 1. 触发 Rebalance        │
+  │    - 新 Consumer 加入     │
+  │    - Consumer 心跳超时    │
+  │    - 订阅 Topic 变化      │
+  └──────────────┬───────────┘
+                 ▼
+  ┌──────────────────────────────────┐
+  │ 2. 选举 Group Leader             │
+  │    第一个加入组的 Consumer        │
+  └──────────────┬───────────────────┘
+                 ▼
+  ┌──────────────────────────────────┐
+  │ 3. 分配 Partition                │
+  │    Group Leader 执行分配策略：    │
+  │    - RangeAssignor（默认）        │
+  │    - RoundRobinAssignor          │
+  │    - StickyAssignor（推荐）       │
+  └──────────────┬───────────────────┘
+                 ▼
+  ┌──────────────────────────────────┐
+  │ 4. 通知所有 Consumer             │
+  │    各 Consumer 开始消费新分配     │
+  │    的 Partition                  │
+  └──────────────────────────────────┘
+
+Rebalance 期间所有 Consumer 暂停消费（Stop-The-World）
+避免频繁 Rebalance：
+- 调大 session.timeout.ms 和 max.poll.interval.ms
+- 减少 max.poll.records
+- 使用 StickyAssignor 减少分区移动
+```
+
+### 生产环境推荐配置
+
+```
+# 高可用关键配置
+min.insync.replicas=2           # 最少同步副本数
+default.replication.factor=3    # 默认副本数
+unclean.leader.election.enable=false  # 禁止非 ISR 选举
+
+# Producer 端
+acks=all                        # 所有 ISR 确认
+enable.idempotence=true         # 幂等
+retries=3                       # 重试
+
+# Consumer 端
+max.poll.interval.ms=300000     # 防止 Rebalance
+session.timeout.ms=30000
+heartbeat.interval.ms=10000
+
+# 集群规模建议
+- < 1TB/天：3 Broker
+- 1-10TB/天：5-7 Broker
+- > 10TB/天：10+ Broker，按吞吐量线性扩展
+```
+
 ## 常见问题排查
 
 ### 问题 1：消费者 Lag 持续增长

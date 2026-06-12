@@ -161,6 +161,170 @@ cluster.status()
 | **MySQL Router** | 官方出品、与 InnoDB Cluster 深度集成、配置简单 | InnoDB Cluster 环境 |
 | **应用层路由** | 代码级别控制、无中间件依赖 | 简单读写分离、对延迟敏感 |
 
+## MySQL 高可用与集群部署
+
+### 高可用方案对比
+
+| 方案 | 自动切换 | 一致性 | 部署复杂度 | 适用规模 |
+|------|---------|--------|-----------|---------|
+| **MHA** | 是（10-30s） | 强一致 | 中 | 传统主从 |
+| **Orchestrator** | 是（秒级） | 强一致 | 中 | 大规模 MySQL 集群 |
+| **InnoDB Cluster** | 是（秒级） | 强一致 | 中 | MySQL 8.0+ 推荐 |
+| **InnoDB ReplicaSet** | 否（手动） | 强一致 | 低 | 简单主从 |
+| **Vitess** | 是 | 最终一致 | 高 | K8s 大规模分片 |
+| **MyCat/ShardingSphere** | 否 | 依赖后端 | 高 | 分库分表 |
+
+### InnoDB Cluster 详解（MySQL 官方推荐）
+
+InnoDB Cluster = MySQL Shell + MySQL Router + Group Replication，是 MySQL 官方的高可用方案：
+
+```
+架构：
+┌─ MySQL Router × 2+ ──────────────────┐
+│  读写分离路由                           │
+│  端口 6446（读写）→ Primary             │
+│  端口 6447（只读）→ Secondary           │
+│  自动感知集群拓扑变化                   │
+└───────────────┬────────────────────────┘
+                │
+┌─ Group Replication（单主模式）──────────┐
+│                                         │
+│ ┌─ Primary (R/W) ───────┐              │
+│ │  接受所有写操作         │              │
+│ │  Paxos 协议广播事务     │              │
+│ └───────────┬────────────┘              │
+│      ┌──────┴───────┐                   │
+│ ┌─ Secondary ─┐ ┌─ Secondary ─┐         │
+│ │ 只读         │ │ 只读         │        │
+│ │ Paxos 投票   │ │ Paxos 投票   │        │
+│ │ 可自动提升   │ │ 可自动提升   │        │
+│ └──────────────┘ └──────────────┘        │
+│                                         │
+│ Group Replication 内置：                 │
+│ - 自动故障检测（心跳 + Paxos）           │
+│ - 自动 Primary 选举                     │
+│ - 防脑裂（多数派仲裁）                   │
+└─────────────────────────────────────────┘
+```
+
+### Group Replication 故障切换流程
+
+```
+正常状态（单主模式）：
+┌─ node1 (PRIMARY) ─┐
+│  读写              │  ← MySQL Router 路由写流量到这里
+└────────┬───────────┘
+    ┌────┴────┐
+┌─ node2 ─┐ ┌─ node3 ─┐
+│ SECONDARY│ │ SECONDARY│  ← MySQL Router 路由读流量
+│ ONLINE   │ │ ONLINE   │
+└──────────┘ └──────────┘
+
+故障切换（node1 宕机）：
+  ┌─────────────────────┐
+  │ 1. node1 宕机        │
+  │    心跳超时           │
+  └──────────┬──────────┘
+             ▼
+  ┌──────────────────────────────┐
+  │ 2. Group Replication 检测到   │
+  │    成员离开                   │
+  │    检查是否满足多数派          │
+  │    (2/3 存活，满足)           │
+  └──────────┬───────────────────┘
+             ▼
+  ┌──────────────────────────────┐
+  │ 3. 自动选举新 Primary         │
+  │    基于选举算法选择 node2      │
+  │    node2 提升为 PRIMARY       │
+  │    node3 继续作为 SECONDARY   │
+  └──────────┬───────────────────┘
+             ▼
+  ┌──────────────────────────────┐
+  │ 4. MySQL Router 感知拓扑变化  │
+  │    自动更新路由               │
+  │    写流量 → node2             │
+  │    读流量 → node2 + node3     │
+  │    客户端无需修改连接配置      │
+  └──────────────────────────────┘
+
+选举条件：
+- 必须满足多数派（N/2 + 1 节点存活）
+- 优先选举 server_uuid 最小或权重最高的节点
+- GTID 事务最完整的节点优先
+
+防脑裂：
+- Group Replication 使用 Paxos 协议
+- 网络分区时，少数派自动退出组（变成 ERROR 状态）
+- 只有多数派分区能继续服务
+```
+
+### 半同步复制 vs 异步复制
+
+```
+异步复制（默认）：
+Primary → 写入 Binlog → 返回成功 → 异步发送到 Secondary
+                          ↑
+                     不等待 Secondary 确认
+                     Primary 宕机可能丢数据
+
+半同步复制（推荐生产）：
+Primary → 写入 Binlog → 等待至少 1 个 Secondary 确认 → 返回成功
+                          ↑
+                     等待 Secondary 收到 Binlog
+                     不丢失数据（最多丢失 1 个事务）
+
+配置：
+# 在所有节点执行
+INSTALL PLUGIN rpl_semi_sync_master SONAME 'semisync_master.so';
+INSTALL PLUGIN rpl_semi_sync_slave SONAME 'semisync_slave.so';
+
+# Primary
+SET GLOBAL rpl_semi_sync_master_enabled = 1;
+SET GLOBAL rpl_semi_sync_master_timeout = 1000;  # 1秒超时后降级为异步
+
+# Secondary
+SET GLOBAL rpl_semi_sync_slave_enabled = 1;
+```
+
+### MySQL Router 自动路由
+
+```ini
+# MySQL Router 配置（自动从 Group Replication 获取拓扑）
+[metadata_cache:cluster]
+type=router
+router_id=1
+bootstrap_server_addresses=mysql://node1:3306,mysql://node2:3306,mysql://node3:3306
+user=router_user
+metadata_cluster=cluster
+ttl=5
+
+[routing:rw]
+bind_address=0.0.0.0
+bind_port=6446
+destinations=metadata-cache://cluster/?role=PRIMARY
+routing_strategy=first-available
+
+[routing:ro]
+bind_address=0.0.0.0
+bind_port=6447
+destinations=metadata-cache://cluster/?role=SECONDARY
+routing_strategy=round-robin
+```
+
+### 多数据中心 InnoDB Cluster
+
+```
+┌─ DC-A ──────────────────────┐    ┌─ DC-B ──────────────────────┐
+│ Primary (R/W)                │    │ Secondary (R)                │
+│ Secondary (R)                │    │                              │
+│                              │    │                              │
+│ 2 票（多数派）               │    │ 1 票                        │
+│ GTID 确保数据一致            │    │ 异步/半同步复制              │
+└──────────────────────────────┘    └──────────────────────────────┘
+DC-A 故障时需要手动提升 DC-B 的节点
+```
+
 ## 核心维护操作
 
 ### InnoDB Buffer Pool 调优

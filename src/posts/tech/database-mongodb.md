@@ -115,6 +115,152 @@ replication:
 
 推荐的分片键模式：**复合分片键**，如 `{ customerId: 1, createdAt: 1 }`，既能保证查询隔离，又能均匀分布数据。
 
+## MongoDB 高可用与集群部署
+
+### 副本集高可用机制
+
+MongoDB 通过副本集（Replica Set）实现高可用，核心是自动选举机制：
+
+```
+副本集架构（3 节点推荐配置）：
+┌─ Primary ──────────────────────┐
+│  接受所有写操作                  │
+│  写入 Oplog（操作日志）          │
+│  心跳检测所有 Secondary          │
+└──────────┬──────────────────────┘
+           │ Oplog 复制
+     ┌─────┴─────────────┐
+┌─ Secondary ────┐ ┌─ Secondary ────┐
+│ Priority: 1    │ │ Priority: 1    │
+│ 可读（默认否）  │ │ Hidden: true   │
+│ 可被选为Primary │ │ 备份/报表专用   │
+│ 投票成员        │ │ 投票成员        │
+└────────────────┘ └────────────────┘
+
+推荐配置：
+- 生产至少 3 个数据承载节点（奇数，确保多数派）
+- 跨可用区部署（AZ1: Primary + Secondary, AZ2: Secondary）
+- 可选 Arbiter（投票成员，不存数据，不推荐用于生产）
+```
+
+### 自动选举流程
+
+Primary 故障时的自动选举过程（通常 10 秒内完成）：
+
+```
+选举触发条件：
+- Primary 心跳超时（默认 10s）
+- Primary 主动 stepDown
+- 网络分区导致 Primary 不可达
+
+选举流程：
+  ┌───────────────────┐
+  │ 1. Primary 宕机    │
+  │    心跳超时        │
+  └─────────┬─────────┘
+            ▼
+  ┌───────────────────────┐
+  │ 2. Secondary 检测到    │
+  │    Primary 不可达      │
+  │    发起选举请求        │
+  └─────────┬─────────────┘
+            ▼
+  ┌───────────────────────────────────────┐
+  │ 3. 选举过程（Raft 协议变体）           │
+  │  ┌──────────────────────────────────┐ │
+  │  │ 候选者条件检查：                  │ │
+  │  │ - Oplog 是否最新？               │ │
+  │  │ - 与 Primary 的数据差距？        │ │
+  │  │ - 优先级最高？                    │ │
+  │  │ - 获得多数派投票（N/2+1）？      │ │
+  │  └──────────────────────────────────┘ │
+  └─────────┬─────────────────────────────┘
+            ▼
+  ┌─────────────────────┐     ┌──────────────────────┐
+  │ 4a. 选举成功         │     │ 4b. 选举失败          │
+  │ 新 Primary 确认      │     │ 等待 2s 后重新选举    │
+  │ 客户端自动重连       │     │ 可能无 Primary        │
+  └─────────────────────┘     └──────────────────────┘
+
+影响选举的参数：
+- electionTimeoutMillis: 10000 (10s，心跳超时)
+- heartbeatIntervalMillis: 2000 (2s，心跳间隔)
+- catchUpTimeoutMillis: -1 (新 Primary 追赶 Oplog 无限等待)
+```
+
+### 写关注与读偏好
+
+```javascript
+// 写关注（Write Concern）— 控制写入确认级别
+// w: 1          → Primary 确认即返回（默认）
+// w: majority   → 多数派节点确认才返回（推荐生产）
+// w: "all"      → 所有节点确认（最安全但最慢）
+db.orders.insertOne(
+  { order_id: 123, amount: 99.9 },
+  { writeConcern: { w: "majority", j: true, wtimeout: 5000 } }
+)
+// j: true 确保写入 journal 才返回
+// wtimeout: 5 秒超时
+
+// 读偏好（Read Preference）— 控制从哪些节点读
+// primary           → 只从 Primary 读（默认，强一致）
+// primaryPreferred  → 优先 Primary，不可用时读 Secondary
+// secondary         → 只从 Secondary 读（用于报表/分析）
+// secondaryPreferred → 优先 Secondary，不可用时读 Primary
+// nearest           → 延迟最低的节点（不管角色）
+db.orders.find({ status: "active" }).readPref("secondaryPreferred")
+
+// 读关注（Read Concern）
+// local       → 读本地最新数据（可能回滚）
+// majority    → 读多数派确认的数据（不会回滚）
+// linearizable → 读线性一致数据（最严格，最慢）
+db.orders.find({}).readConcern("majority")
+```
+
+### 分片集群高可用
+
+```
+┌─ mongos × 2+（无状态路由，可水平扩展）─┐
+│  客户端连接任意 mongos                   │
+│  自动路由到对应 Shard                    │
+└───────────────┬─────────────────────────┘
+                │
+┌─ Config Server RS（3 节点）─────────────┐
+│  存储集群元数据、分片信息、Balancer 状态   │
+│  生产必须 3 节点副本集                    │
+└───────────────┬─────────────────────────┘
+                │
+    ┌───────────┼───────────┐
+┌─ Shard 1 (RS) ─┐ ┌─ Shard 2 (RS) ─┐ ┌─ Shard 3 (RS) ─┐
+│ Primary + 2 Sec │ │ Primary + 2 Sec │ │ Primary + 2 Sec │
+│ 独立选举        │ │ 独立选举        │ │ 独立选举        │
+│ 数据分片 1      │ │ 数据分片 2      │ │ 数据分片 3      │
+└────────────────┘ └────────────────┘ └────────────────┘
+
+高可用要点：
+- 每个 Shard 是独立副本集，有自己的选举机制
+- Config Server 是独立副本集
+- mongos 无状态，挂掉任意一个不影响服务
+- Chunk 自动迁移（Balancer）确保数据均衡
+- 分片键选择直接影响数据分布和可用性
+```
+
+### 跨数据中心部署
+
+```
+┌─ AZ-1 ─────────────────────┐    ┌─ AZ-2 ─────────────────────┐
+│ Primary (Priority: 2)       │    │ Secondary (Priority: 1)     │
+│ Secondary (Priority: 1)     │    │ Secondary (Priority: 1)     │
+│                             │    │                             │
+│ 2 票（AZ 故障时仍可选举）    │    │ 2 票                        │
+└─────────────────────────────┘    └─────────────────────────────┘
+
+跨 AZ 注意：
+- 网络延迟增加选举时间
+- 调大 electionTimeoutMillis
+- 使用 tagged write concern 确保跨 AZ 复制
+```
+
 ## 核心维护操作
 
 ### Oplog 管理

@@ -74,6 +74,173 @@ PostgreSQL 生产环境的标准架构是基于 WAL（Write-Ahead Log）的流�
 
 Patroni 是目前最成熟的开源 PostgreSQL 高可用方案。其工作原理是每个数据库节点运行一个 Patroni Agent，通过 etcd（或 Consul/ZooKeeper）进行 Leader 选举。当主库故障时，Patroni 自动将最优从库提升为新主库，并重新配置其他从库的复制源。典型切换时间在 10-30 秒之间。
 
+## PostgreSQL 高可用与集群部署
+
+### 高可用架构选型
+
+| 方案 | 自动故障切换 | 一致性保证 | 复杂度 | 适用场景 |
+|------|-------------|-----------|--------|----------|
+| **流复制 + 手动切换** | 否 | 强一致 | 低 | 小型、可接受短时中断 |
+| **Patroni + etcd** | 是（秒级） | 强一致 | 中 | 中大型生产环境 |
+| **repmgr** | 是（需 witness） | 强一致 | 中 | 传统 VM 环境 |
+| **CloudNativePG** | 是 | 强一致 | 中 | Kubernetes 环境 |
+| **PgPool-II** | 是 | 强一致 | 高 | 需要连接池+负载均衡 |
+| **逻辑复制** | 否（应用层切换） | 最终一致 | 中 | 跨版本/跨数据中心 |
+
+### 流复制详解
+
+PostgreSQL 高可用的基础是流复制（Streaming Replication），主库持续发送 WAL 日志到从库：
+
+```
+┌─ Primary ──────────────────────┐
+│  WAL 生成 → Send WAL Stream    │
+│  synchronous_commit=on         │
+└──────────┬──────────────────────┘
+           │ WAL Stream (TCP 5432)
+     ┌─────┴─────────────┐
+┌─ Sync Standby ─┐ ┌─ Async Standby ─┐
+│ 收到 WAL → ACK │ │ 收到 WAL（延迟）│
+│ 数据零丢失     │ │ 可能丢失少量    │
+│ 可自动提升     │ │ 可自动提升      │
+└────────────────┘ └────────────────┘
+
+同步模式：Primary 等待 Sync Standby 确认后才返回成功
+异步模式：Primary 不等待，性能更好但可能丢数据
+```
+
+### Patroni 自动故障切换流程
+
+Patroni 是目前最主流的 PostgreSQL 自动故障切换方案，依赖 etcd 作为 DCS（分布式配置存储）：
+
+```
+正常状态：
+┌─ etcd Cluster ─────────────────────┐
+│  /service/cluster_name/leader      │
+│  = "node1" (leader lock)           │
+└──────────┬─────────────────────────┘
+           │ TTL 续约（每 10s）
+┌─ Patroni@node1 (Leader) ─┐
+│  持有 leader lock          │
+│  提供读写服务              │
+└───────────────────────────┘
+┌─ Patroni@node2 (Replica) ┐  ┌─ Patroni@node3 (Replica) ┐
+│  流复制同步               │  │  流复制同步               │
+│  等待成为 Leader          │  │  等待成为 Leader          │
+└───────────────────────────┘  └───────────────────────────┘
+
+故障切换流程（Primary node1 宕机）：
+
+  ┌─────────────┐    ┌──────────────┐    ┌──────────────┐
+  │ 1. node1 宕机 │───→│ 2. TTL 过期   │───→│ 3. node2/node3│
+  │    Leader 失效│    │   etcd 锁释放 │    │   竞争 Leader │
+  └─────────────┘    └──────────────┘    └──────┬───────┘
+                                                  │
+                    ┌──────────────┐    ┌──────────▼──────┐
+                    │ 5. 其余节点   │←───│ 4. node2 获得锁  │
+                    │   开始跟随    │    │   promote 自身   │
+                    │   新 Leader   │    │   成为新 Leader  │
+                    └──────────────┘    └─────────────────┘
+
+关键参数：
+- ttl: 30s（Leader 锁 TTL）
+- loop_wait: 10s（Patroni 检查间隔）
+- retry_timeout: 30s（操作重试超时）
+- maximum_lag_on_failover: 1MB（允许的最大复制延迟）
+```
+
+### 防脑裂机制
+
+```
+Patroni 防脑裂：
+1. 依赖 etcd 的分布式锁（同一时刻只有一个 Leader）
+2. 网络分区时，少数派节点无法续约锁，自动降级为 Replica
+3. 只有持有锁的节点才以 Primary 身份运行
+4. 如果 etcd 不可用，所有节点降级为 Replica，宁可不可用也不脑裂
+
+同步复制的零数据丢失：
+- synchronous_commit=on
+- synchronous_standby_names='FIRST 1 (node2, node3)'
+- 至少 1 个同步从库确认后才返回成功
+```
+
+### Patroni 集群部署示例
+
+```yaml
+# patroni.yml (node1 示例)
+scope: pg-cluster
+name: node1
+
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: node1:8008
+
+etcd:
+  hosts: etcd1:2379,etcd2:2379,etcd3:2379
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 30
+    maximum_lag_on_failover: 1048576
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        wal_level: replica
+        hot_standby: "on"
+        max_wal_senders: 10
+        max_replication_slots: 10
+        wal_log_hints: "on"
+        synchronous_commit: "on"
+        synchronous_standby_names: "FIRST 1 (node2, node3)"
+
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: node1:5432
+  data_dir: /var/lib/postgresql/data
+  pg_hba:
+    - local   all all trust
+    - host    all all 0.0.0.0/0 md5
+    - host    replication replicator 0.0.0.0/0 md5
+
+tags:
+  failover_priority: 1
+  synchronous_mode: true
+```
+
+### 客户端连接管理
+
+故障切换时客户端如何自动重连：
+
+```ini
+# PgBouncer 配置（推荐）
+[databases]
+pg-cluster = host=node1 port=5432 dbname=app
+
+# 或使用 libpq 连接字符串
+# postgres://user:pass@node1,node2,node3:5432/app?target_session_attrs=read-write
+# 自动连接到当前 Primary
+```
+
+### 多数据中心部署
+
+```
+┌─ DC-A（主站点）───────────────┐    ┌─ DC-B（灾备站点）───────────┐
+│ ┌─ Primary ──────────┐        │    │ ┌─ Async Standby ────────┐  │
+│ │  Patroni + etcd    │        │    │ │  Patroni + etcd        │  │
+│ │  读写服务           │────────│────│→│  只读 + 灾备           │  │
+│ └────────────────────┘        │    │ └────────────────────────┘  │
+│ ┌─ Sync Standby ──────┐       │    │                              │
+│ │  同步复制 + 自动切换 │       │    │                              │
+│ └─────────────────────┘       │    │                              │
+│ 延迟：< 1ms                    │    │ 延迟：< 10ms                  │
+│ RPO = 0（同步复制）            │    │ RPO ≈ 秒级（异步复制）       │
+└────────────────────────────────┘    └──────────────────────────────┘
+
+WAL 归档到共享存储（S3/NFS）确保跨站点数据安全
+```
+
 ## 核心维护操作
 
 ### 1. VACUUM -- 回收死元组空间

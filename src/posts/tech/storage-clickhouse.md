@@ -418,6 +418,161 @@ SETTINGS
 
 冷热分离效果：热数据（近 30 天）在本地 SSD 上毫秒级响应，冷数据在对象存储上查询延迟增加但存储成本降低 70-80%。
 
+## ClickHouse 高可用与集群部署
+
+### 集群架构选型
+
+| 架构 | 容错能力 | 适用场景 |
+|------|---------|---------|
+| **单机 MergeTree** | 无 | 开发测试 |
+| **ReplicatedMergeTree + ZK** | 副本级容错 | 生产推荐 |
+| **ReplicatedMergeTree + Keeper** | 副本级容错 | 新部署推荐 |
+| **分片 + 副本** | 节点级 + 副本级 | 大规模分析 |
+
+### ReplicatedMergeTree 复制机制
+
+```
+2 副本集群架构（最小生产配置）：
+
+┌─ ClickHouse Keeper (3 节点) ─────────────┐
+│  存储副本元数据                            │
+│  /clickhouse/tables/{db}/{table}/replicas │
+│  协调数据同步                              │
+└──────────┬───────────────────────────────┘
+           │
+    ┌──────┴──────┐
+┌─ CH Replica 1 ──────────────┐
+│  ReplicatedMergeTree        │
+│  Leader 副本（可配置）       │
+│  写入 → Part → 注册到 Keeper│
+│  → 通知 Replica 2 拉取      │
+└──────────┬──────────────────┘
+┌─ CH Replica 2 ──────────────┐
+│  ReplicatedMergeTree        │
+│  Follower 副本              │
+│  从 Keeper 获取 Part 列表   │
+│  → 从 Replica 1 拉取 Part   │
+└──────────────────────────────┘
+
+写入流程：
+1. INSERT 数据到 Replica 1
+2. Replica 1 生成 Part
+3. Part 元数据写入 Keeper
+4. Replica 2 通过 Keeper 感知新 Part
+5. Replica 2 从 Replica 1 下载 Part
+6. 下载完成 → Part 在两个副本都可用
+
+读取：
+- 通过 Distributed 表或负载均衡器分发读请求
+- 任一副本都可以独立响应查询
+```
+
+### 分片集群高可用
+
+```
+2 分片 × 2 副本 的集群架构：
+
+┌─ Distributed 表（查询入口）──────────────────────┐
+│  路由查询到各 Shard 的健康 Replica                │
+└────────────────────┬──────────────────────────────┘
+                     │
+       ┌─────────────┼─────────────┐
+┌─ Shard 1 ───────────────────────┐ ┌─ Shard 2 ───────────────────────┐
+│                                  │ │                                  │
+│ ┌─ Replica 1a (Leader) ──────┐  │ │ ┌─ Replica 2a (Leader) ──────┐  │
+│ │  写入 + 读取                │  │ │ │  写入 + 读取                │  │
+│ └──────────┬─────────────────┘  │ │ └──────────┬─────────────────┘  │
+│     ┌──────┴──────┐             │ │     ┌──────┴──────┐             │
+│ ┌─ Replica 1b ─┐               │ │ ┌─ Replica 2b ─┐               │
+│ │ 同步 + 读取  │               │ │ │ 同步 + 读取   │               │
+│ └──────────────┘               │ │ └───────────────┘               │
+└─────────────────────────────────┘ └─────────────────────────────────┘
+
+数据分布：不同 Shard 存不同数据（水平分片）
+副本同步：同一 Shard 内的 Replica 数据相同
+故障切换：
+- Replica 1a 宕机 → Distributed 表自动路由到 Replica 1b
+- 整个 Shard 1 宕机 → 查询报错（需多副本跨 AZ 部署避免）
+```
+
+### ClickHouse Keeper（替代 ZooKeeper）
+
+```
+ClickHouse Keeper 是内置的 ZooKeeper 替代品：
+
+优势：
+- C++ 编写，与 ClickHouse 技术栈统一
+- 无需 JVM，无 GC 停顿
+- 性能更好，内存占用更小
+- 部署更简单
+
+┌─ Keeper 1 (Leader) ──┐
+│  Raft 共识            │
+│  处理写请求           │
+└──────────┬───────────┘
+     ┌─────┴──────┐
+┌─ Keeper 2 ──┐ ┌─ Keeper 3 ──┐
+│ Learner/    │ │ Learner/    │
+│ Follower    │ │ Follower    │
+└─────────────┘ └─────────────┘
+
+配置：
+# keeper_config.xml
+<keeper_server>
+    <tcp_port>9181</tcp_port>
+    <server_id>1</server_id>
+    <log_storage_path>/var/lib/clickhouse/keeper/log</log_storage_path>
+    <snapshot_storage_path>/var/lib/clickhouse/keeper/snapshots</snapshot_storage_path>
+    <coordination_settings>
+        <operation_timeout_ms>10000</operation_timeout_ms>
+        <session_timeout_ms>30000</session_timeout_ms>
+        <raft_logs_level>information</raft_logs_level>
+    </coordination_settings>
+    <raft_configuration>
+        <server>
+            <id>1</id>
+            <hostname>keeper1</hostname>
+            <port>9234</port>
+        </server>
+        <server>
+            <id>2</id>
+            <hostname>keeper2</hostname>
+            <port>9234</port>
+        </server>
+        <server>
+            <id>3</id>
+            <hostname>keeper3</hostname>
+            <port>9234</port>
+        </server>
+    </raft_configuration>
+</keeper_server>
+```
+
+### 生产集群推荐拓扑
+
+```
+高可用推荐：2 Shard × 2 Replica + 3 Keeper
+
+┌─ Keeper × 3（独立节点，SSD）────────────────┐
+│  keeper1 (10.0.1.1)                         │
+│  keeper2 (10.0.2.1)                         │
+│  keeper3 (10.0.3.1)                         │
+└──────────────────────────────────────────────┘
+
+┌─ Shard 1 ───────────────────────────────────┐
+│  ch-s1r1 (10.0.1.10) — AZ-a, 写入 + 读取    │
+│  ch-s1r2 (10.0.2.10) — AZ-b, 读取 + 备份    │
+└──────────────────────────────────────────────┘
+┌─ Shard 2 ───────────────────────────────────┐
+│  ch-s2r1 (10.0.1.11) — AZ-a, 写入 + 读取    │
+│  ch-s2r2 (10.0.2.11) — AZ-b, 读取 + 备份    │
+└──────────────────────────────────────────────┘
+
+写入：通过 Distributed 表或负载均衡器
+读取：通过 Distributed 表，自动选择健康副本
+故障切换：副本宕机时自动路由到另一副本
+```
+
 ## 常见问题排查
 
 ### OOM 被杀

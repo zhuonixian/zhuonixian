@@ -12,14 +12,47 @@ export default navbar([
         icon: "code",
         prefix: "tech/",
         children: [
+          {
+            text: "云原生与 K8s",
+            icon: "docker",
+            prefix: "",
+            children: [
+              { text: "Kubernetes 核心概念", link: "kubernetes-concepts" },
+              { text: "云原生生态全景", link: "cloud-native-cncf" },
+              { text: "K8s 生产运维实践", link: "kubernetes-operations" },
+              { text: "K8s 版本演进解读", link: "kubernetes-version-evolution" },
+              { text: "平台工程", link: "platform-engineering" },
+            ],
+          },
+          {
+            text: "数据库",
+            icon: "database",
+            prefix: "",
+            children: [
+              { text: "PostgreSQL 与 MongoDB 运维", link: "database-postgresql-mongodb" },
+            ],
+          },
+          {
+            text: "中间件",
+            icon: "cubes",
+            prefix: "",
+            children: [
+              { text: "Redis 运维与排查", link: "middleware-redis" },
+              { text: "Kafka 与 ZooKeeper 迁移", link: "middleware-kafka-zookeeper" },
+              { text: "etcd 运维与故障排查", link: "middleware-etcd" },
+            ],
+          },
+          {
+            text: "存储与分析",
+            icon: "chart-column",
+            prefix: "",
+            children: [
+              { text: "MinIO 与 ClickHouse 运维", link: "storage-minio-clickhouse" },
+            ],
+          },
           { text: "VuePress 搭建博客", icon: "pen-to-square", link: "vuepress-blog" },
           { text: "Cloudflare Pages 部署", icon: "pen-to-square", link: "cloudflare-deploy" },
           { text: "Git 常用命令", icon: "pen-to-square", link: "git-commands" },
-          { text: "Kubernetes 核心概念", icon: "docker", link: "kubernetes-concepts" },
-          { text: "云原生生态全景", icon: "globe", link: "cloud-native-cncf" },
-          { text: "K8s 生产运维实践", icon: "server", link: "kubernetes-operations" },
-          { text: "K8s 版本演进解读", icon: "code-branch", link: "kubernetes-version-evolution" },
-          { text: "平台工程", icon: "layers", link: "platform-engineering" },
         ],
       },
       {

@@ -24,7 +24,10 @@ export default navbar([
         icon: "database",
         prefix: "tech/",
         children: [
-          { text: "PostgreSQL 与 MongoDB 运维", link: "database-postgresql-mongodb" },
+          { text: "PostgreSQL 运维", link: "database-postgresql" },
+          { text: "MongoDB 运维", link: "database-mongodb" },
+          { text: "MySQL 运维", link: "database-mysql" },
+          { text: "国产化数据库全景", link: "database-domestic" },
         ],
       },
       {
@@ -42,7 +45,19 @@ export default navbar([
         icon: "chart-column",
         prefix: "tech/",
         children: [
-          { text: "MinIO 与 ClickHouse 运维", link: "storage-minio-clickhouse" },
+          { text: "MinIO 运维", link: "storage-minio" },
+          { text: "ClickHouse 运维", link: "storage-clickhouse" },
+        ],
+      },
+      {
+        text: "国产化迁移",
+        icon: "flag",
+        prefix: "tech/",
+        children: [
+          { text: "国产操作系统与软件生态", link: "domestic-os-ecosystem" },
+          { text: "国产化迁移实践", link: "domestic-migration-practice" },
+          { text: "国产化中间件选型", link: "domestic-middleware" },
+          { text: "国产云平台与容器生态", link: "domestic-cloud-platform" },
         ],
       },
       {

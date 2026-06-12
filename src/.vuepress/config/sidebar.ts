@@ -29,7 +29,10 @@ export default sidebar({
       prefix: "posts/tech/",
       collapsible: true,
       children: [
-        "database-postgresql-mongodb",
+        "database-postgresql",
+        "database-mongodb",
+        "database-mysql",
+        "database-domestic",
       ],
     },
     {
@@ -49,7 +52,20 @@ export default sidebar({
       prefix: "posts/tech/",
       collapsible: true,
       children: [
-        "storage-minio-clickhouse",
+        "storage-minio",
+        "storage-clickhouse",
+      ],
+    },
+    {
+      text: "国产化迁移",
+      icon: "flag",
+      prefix: "posts/tech/",
+      collapsible: true,
+      children: [
+        "domestic-os-ecosystem",
+        "domestic-migration-practice",
+        "domestic-middleware",
+        "domestic-cloud-platform",
       ],
     },
     {

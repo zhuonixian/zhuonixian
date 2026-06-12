@@ -46,6 +46,30 @@ export default navbar([
         ],
       },
       {
+        text: "Golang 入门",
+        icon: "code",
+        prefix: "tech/",
+        children: [
+          { text: "环境搭建与基础语法", link: "golang-basics" },
+          { text: "数据类型与错误处理", link: "golang-datatypes-control" },
+          { text: "结构体、方法与接口", link: "golang-struct-interface" },
+          { text: "并发编程实战", link: "golang-concurrency" },
+          { text: "标准库与项目实战", link: "golang-stdlib-project" },
+        ],
+      },
+      {
+        text: "SRE 运维开发",
+        icon: "gauge-high",
+        prefix: "tech/",
+        children: [
+          { text: "SLI/SLO/SLA 体系", link: "sre-fundamentals" },
+          { text: "CLI 工具开发", link: "sre-go-cli-tools" },
+          { text: "Go 操作 K8s", link: "sre-go-kubernetes" },
+          { text: "Prometheus Exporter", link: "sre-prometheus-exporter" },
+          { text: "故障管理与 Runbook", link: "sre-incident-runbook" },
+        ],
+      },
+      {
         text: "其他技术",
         icon: "wrench",
         prefix: "tech/",

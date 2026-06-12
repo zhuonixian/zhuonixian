@@ -53,6 +53,32 @@ export default sidebar({
       ],
     },
     {
+      text: "Golang 入门",
+      icon: "code",
+      prefix: "posts/tech/",
+      collapsible: true,
+      children: [
+        "golang-basics",
+        "golang-datatypes-control",
+        "golang-struct-interface",
+        "golang-concurrency",
+        "golang-stdlib-project",
+      ],
+    },
+    {
+      text: "SRE 运维开发",
+      icon: "gauge-high",
+      prefix: "posts/tech/",
+      collapsible: true,
+      children: [
+        "sre-fundamentals",
+        "sre-go-cli-tools",
+        "sre-go-kubernetes",
+        "sre-prometheus-exporter",
+        "sre-incident-runbook",
+      ],
+    },
+    {
       text: "其他技术文章",
       icon: "wrench",
       prefix: "posts/tech/",

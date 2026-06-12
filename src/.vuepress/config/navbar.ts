@@ -10,7 +10,7 @@ export default navbar([
       {
         text: "云原生与 K8s",
         icon: "docker",
-        prefix: "tech/",
+        prefix: "tech/cloud-native/",
         children: [
           { text: "Kubernetes 核心概念", link: "kubernetes-concepts" },
           { text: "云原生生态全景", link: "cloud-native-cncf" },
@@ -22,7 +22,7 @@ export default navbar([
       {
         text: "数据库",
         icon: "database",
-        prefix: "tech/",
+        prefix: "tech/database/",
         children: [
           { text: "PostgreSQL 运维", link: "database-postgresql" },
           { text: "MongoDB 运维", link: "database-mongodb" },
@@ -33,7 +33,7 @@ export default navbar([
       {
         text: "中间件",
         icon: "cubes",
-        prefix: "tech/",
+        prefix: "tech/middleware/",
         children: [
           { text: "Redis 运维与排查", link: "middleware-redis" },
           { text: "Kafka 与 ZooKeeper 迁移", link: "middleware-kafka-zookeeper" },
@@ -43,7 +43,7 @@ export default navbar([
       {
         text: "存储与分析",
         icon: "chart-column",
-        prefix: "tech/",
+        prefix: "tech/storage/",
         children: [
           { text: "MinIO 运维", link: "storage-minio" },
           { text: "ClickHouse 运维", link: "storage-clickhouse" },
@@ -52,7 +52,7 @@ export default navbar([
       {
         text: "国产化迁移",
         icon: "flag",
-        prefix: "tech/",
+        prefix: "tech/domestic/",
         children: [
           { text: "国产操作系统与软件生态", link: "domestic-os-ecosystem" },
           { text: "国产化迁移实践", link: "domestic-migration-practice" },
@@ -63,7 +63,7 @@ export default navbar([
       {
         text: "Golang 入门",
         icon: "code",
-        prefix: "tech/",
+        prefix: "tech/golang/",
         children: [
           { text: "环境搭建与基础语法", link: "golang-basics" },
           { text: "数据类型与错误处理", link: "golang-datatypes-control" },
@@ -75,7 +75,7 @@ export default navbar([
       {
         text: "SRE 运维开发",
         icon: "gauge-high",
-        prefix: "tech/",
+        prefix: "tech/sre/",
         children: [
           { text: "SLI/SLO/SLA 体系", link: "sre-fundamentals" },
           { text: "CLI 工具开发", link: "sre-go-cli-tools" },
@@ -87,7 +87,7 @@ export default navbar([
       {
         text: "运维监控告警",
         icon: "tower-broadcast",
-        prefix: "tech/",
+        prefix: "tech/monitoring/",
         children: [
           { text: "可观测性体系总览", link: "monitoring-observability-overview" },
           { text: "Prometheus 架构与原理", link: "prometheus-architecture" },
@@ -104,9 +104,9 @@ export default navbar([
         ],
       },
       {
-        text: "LLM 评测",
+        text: "LLM 评测与训练",
         icon: "chart-bar",
-        prefix: "tech/",
+        prefix: "tech/llm/",
         children: [
           { text: "评测体系总览", link: "benchmark-overview" },
           { text: "lm-evaluation-harness", link: "benchmark-lm-eval-harness" },
@@ -114,13 +114,6 @@ export default navbar([
           { text: "新一代评测基准", link: "benchmark-new-generation" },
           { text: "评测实战指南", link: "benchmark-practice" },
           { text: "框架对比与选型", link: "benchmark-frameworks-compare" },
-        ],
-      },
-      {
-        text: "模型训练与微调",
-        icon: "microchip",
-        prefix: "tech/",
-        children: [
           { text: "本地 GPU 环境搭建", link: "training-local-gpu" },
           { text: "LoRA 微调原理与实践", link: "training-lora-finetune" },
           { text: "SRE 领域模型微调", link: "training-ops-assistant" },
@@ -129,7 +122,7 @@ export default navbar([
       {
         text: "其他技术",
         icon: "wrench",
-        prefix: "tech/",
+        prefix: "tech/others/",
         children: [
           { text: "VuePress 搭建博客", link: "vuepress-blog" },
           { text: "Cloudflare Pages 部署", link: "cloudflare-deploy" },

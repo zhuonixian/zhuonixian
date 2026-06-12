@@ -69,7 +69,18 @@ export default hopeTheme({
 
     slimsearch: {
       indexContent: true,
+      indexMore: true,
       suggest: true,
+      maxSuggestions: 10,
+      locales: {
+        "/": {
+          placeholder: "输入关键词搜索",
+          search: "搜索",
+          cancel: "取消",
+          loading: "加载中",
+          clear: "清除",
+        },
+      },
     },
 
     feed: {

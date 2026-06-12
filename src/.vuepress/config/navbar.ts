@@ -8,51 +8,51 @@ export default navbar([
     prefix: "/posts/",
     children: [
       {
-        text: "技术",
-        icon: "code",
+        text: "云原生与 K8s",
+        icon: "docker",
         prefix: "tech/",
         children: [
-          {
-            text: "云原生与 K8s",
-            icon: "docker",
-            prefix: "",
-            children: [
-              { text: "Kubernetes 核心概念", link: "kubernetes-concepts" },
-              { text: "云原生生态全景", link: "cloud-native-cncf" },
-              { text: "K8s 生产运维实践", link: "kubernetes-operations" },
-              { text: "K8s 版本演进解读", link: "kubernetes-version-evolution" },
-              { text: "平台工程", link: "platform-engineering" },
-            ],
-          },
-          {
-            text: "数据库",
-            icon: "database",
-            prefix: "",
-            children: [
-              { text: "PostgreSQL 与 MongoDB 运维", link: "database-postgresql-mongodb" },
-            ],
-          },
-          {
-            text: "中间件",
-            icon: "cubes",
-            prefix: "",
-            children: [
-              { text: "Redis 运维与排查", link: "middleware-redis" },
-              { text: "Kafka 与 ZooKeeper 迁移", link: "middleware-kafka-zookeeper" },
-              { text: "etcd 运维与故障排查", link: "middleware-etcd" },
-            ],
-          },
-          {
-            text: "存储与分析",
-            icon: "chart-column",
-            prefix: "",
-            children: [
-              { text: "MinIO 与 ClickHouse 运维", link: "storage-minio-clickhouse" },
-            ],
-          },
-          { text: "VuePress 搭建博客", icon: "pen-to-square", link: "vuepress-blog" },
-          { text: "Cloudflare Pages 部署", icon: "pen-to-square", link: "cloudflare-deploy" },
-          { text: "Git 常用命令", icon: "pen-to-square", link: "git-commands" },
+          { text: "Kubernetes 核心概念", link: "kubernetes-concepts" },
+          { text: "云原生生态全景", link: "cloud-native-cncf" },
+          { text: "K8s 生产运维实践", link: "kubernetes-operations" },
+          { text: "K8s 版本演进解读", link: "kubernetes-version-evolution" },
+          { text: "平台工程", link: "platform-engineering" },
+        ],
+      },
+      {
+        text: "数据库",
+        icon: "database",
+        prefix: "tech/",
+        children: [
+          { text: "PostgreSQL 与 MongoDB 运维", link: "database-postgresql-mongodb" },
+        ],
+      },
+      {
+        text: "中间件",
+        icon: "cubes",
+        prefix: "tech/",
+        children: [
+          { text: "Redis 运维与排查", link: "middleware-redis" },
+          { text: "Kafka 与 ZooKeeper 迁移", link: "middleware-kafka-zookeeper" },
+          { text: "etcd 运维与故障排查", link: "middleware-etcd" },
+        ],
+      },
+      {
+        text: "存储与分析",
+        icon: "chart-column",
+        prefix: "tech/",
+        children: [
+          { text: "MinIO 与 ClickHouse 运维", link: "storage-minio-clickhouse" },
+        ],
+      },
+      {
+        text: "其他技术",
+        icon: "wrench",
+        prefix: "tech/",
+        children: [
+          { text: "VuePress 搭建博客", link: "vuepress-blog" },
+          { text: "Cloudflare Pages 部署", link: "cloudflare-deploy" },
+          { text: "Git 常用命令", link: "git-commands" },
         ],
       },
       {
@@ -60,8 +60,8 @@ export default navbar([
         icon: "mug-hot",
         prefix: "life/",
         children: [
-          { text: "2026 初夏", icon: "pen-to-square", link: "early-summer-2026" },
-          { text: "读书笔记：原则", icon: "pen-to-square", link: "reading-principles" },
+          { text: "2026 初夏", link: "early-summer-2026" },
+          { text: "读书笔记：原则", link: "reading-principles" },
         ],
       },
       {
@@ -69,7 +69,7 @@ export default navbar([
         icon: "notebook",
         prefix: "notes/",
         children: [
-          { text: "Linux 常用技巧", icon: "pen-to-square", link: "linux-tips" },
+          { text: "Linux 常用技巧", link: "linux-tips" },
         ],
       },
     ],

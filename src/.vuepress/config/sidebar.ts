@@ -11,9 +11,70 @@ export default sidebar({
       children: "structure",
     },
     {
-      text: "文章",
-      icon: "book",
-      prefix: "posts/",
+      text: "云原生与 K8s",
+      icon: "docker",
+      prefix: "posts/tech/",
+      collapsible: true,
+      children: [
+        "kubernetes-concepts",
+        "cloud-native-cncf",
+        "kubernetes-operations",
+        "kubernetes-version-evolution",
+        "platform-engineering",
+      ],
+    },
+    {
+      text: "数据库",
+      icon: "database",
+      prefix: "posts/tech/",
+      collapsible: true,
+      children: [
+        "database-postgresql-mongodb",
+      ],
+    },
+    {
+      text: "中间件",
+      icon: "cubes",
+      prefix: "posts/tech/",
+      collapsible: true,
+      children: [
+        "middleware-redis",
+        "middleware-kafka-zookeeper",
+        "middleware-etcd",
+      ],
+    },
+    {
+      text: "存储与分析",
+      icon: "chart-column",
+      prefix: "posts/tech/",
+      collapsible: true,
+      children: [
+        "storage-minio-clickhouse",
+      ],
+    },
+    {
+      text: "其他技术文章",
+      icon: "wrench",
+      prefix: "posts/tech/",
+      collapsible: true,
+      children: [
+        "vuepress-blog",
+        "cloudflare-deploy",
+        "git-commands",
+      ],
+    },
+    {
+      text: "生活",
+      icon: "mug-hot",
+      prefix: "posts/life/",
+      collapsible: true,
+      children: "structure",
+    },
+    {
+      text: "笔记",
+      icon: "notebook",
+      prefix: "posts/notes/",
+      collapsible: true,
       children: "structure",
     },
     {

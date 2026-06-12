@@ -15,6 +15,11 @@ export default navbar([
           { text: "VuePress 搭建博客", icon: "pen-to-square", link: "vuepress-blog" },
           { text: "Cloudflare Pages 部署", icon: "pen-to-square", link: "cloudflare-deploy" },
           { text: "Git 常用命令", icon: "pen-to-square", link: "git-commands" },
+          { text: "Kubernetes 核心概念", icon: "docker", link: "kubernetes-concepts" },
+          { text: "云原生生态全景", icon: "globe", link: "cloud-native-cncf" },
+          { text: "K8s 生产运维实践", icon: "server", link: "kubernetes-operations" },
+          { text: "K8s 版本演进解读", icon: "code-branch", link: "kubernetes-version-evolution" },
+          { text: "平台工程", icon: "layers", link: "platform-engineering" },
         ],
       },
       {

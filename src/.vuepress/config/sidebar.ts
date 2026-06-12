@@ -79,6 +79,31 @@ export default sidebar({
       ],
     },
     {
+      text: "LLM 评测",
+      icon: "chart-bar",
+      prefix: "posts/tech/",
+      collapsible: true,
+      children: [
+        "benchmark-overview",
+        "benchmark-lm-eval-harness",
+        "benchmark-opencompass",
+        "benchmark-new-generation",
+        "benchmark-practice",
+        "benchmark-frameworks-compare",
+      ],
+    },
+    {
+      text: "模型训练与微调",
+      icon: "microchip",
+      prefix: "posts/tech/",
+      collapsible: true,
+      children: [
+        "training-local-gpu",
+        "training-lora-finetune",
+        "training-ops-assistant",
+      ],
+    },
+    {
       text: "其他技术文章",
       icon: "wrench",
       prefix: "posts/tech/",

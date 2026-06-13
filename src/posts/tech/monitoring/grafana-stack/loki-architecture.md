@@ -1,6 +1,7 @@
 ---
 title: Loki 日志聚合原理与架构
 icon: file-lines
+order: 2
 date: 2026-06-13
 category:
   - 技术

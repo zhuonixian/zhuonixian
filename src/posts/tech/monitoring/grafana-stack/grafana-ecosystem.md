@@ -1,6 +1,7 @@
 ---
 title: Grafana 可视化生态
 icon: chart-line
+order: 1
 date: 2026-06-13
 category:
   - 技术

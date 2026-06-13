@@ -1,6 +1,7 @@
 ---
 title: Loki 与 Promtail 生产实践
 icon: gears
+order: 3
 date: 2026-06-13
 category:
   - 技术

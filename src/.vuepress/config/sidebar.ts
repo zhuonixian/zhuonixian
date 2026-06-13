@@ -64,7 +64,31 @@ export default sidebar({
       icon: "tower-broadcast",
       prefix: "posts/tech/monitoring/",
       collapsible: true,
-      children: "structure",
+      children: [
+        "monitoring-observability-overview",
+        "opentelemetry-practice",
+        {
+          text: "Prometheus 生态",
+          icon: "fire",
+          prefix: "prometheus/",
+          collapsible: true,
+          children: "structure",
+        },
+        {
+          text: "VictoriaMetrics",
+          icon: "bolt",
+          prefix: "victoria-metrics/",
+          collapsible: true,
+          children: "structure",
+        },
+        {
+          text: "Grafana LGTM 栈",
+          icon: "chart-line",
+          prefix: "grafana-stack/",
+          collapsible: true,
+          children: "structure",
+        },
+      ],
     },
     {
       text: "LLM 评测与训练",

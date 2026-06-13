@@ -1,6 +1,7 @@
 ---
 title: VictoriaMetrics 生产实践
 icon: gear
+order: 2
 date: 2026-06-13
 category:
   - 技术

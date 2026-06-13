@@ -1,6 +1,7 @@
 ---
 title: PromQL 进阶查询与最佳实践
 icon: magnifying-glass-chart
+order: 2
 date: 2026-06-13
 category:
   - 技术

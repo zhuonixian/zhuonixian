@@ -85,22 +85,43 @@ export default navbar([
         ],
       },
       {
-        text: "运维监控告警",
+        text: "运维监控总览",
         icon: "tower-broadcast",
         prefix: "tech/monitoring/",
         children: [
           { text: "可观测性体系总览", link: "monitoring-observability-overview" },
+          { text: "OpenTelemetry 实践", link: "opentelemetry-practice" },
+        ],
+      },
+      {
+        text: "Prometheus 生态",
+        icon: "fire",
+        prefix: "tech/monitoring/prometheus/",
+        children: [
           { text: "Prometheus 架构与原理", link: "prometheus-architecture" },
           { text: "PromQL 进阶查询", link: "promql-advanced" },
           { text: "Alertmanager 告警管理", link: "alertmanager-practice" },
           { text: "Prometheus 高可用", link: "prometheus-ha-federation" },
-          { text: "VictoriaMetrics 架构", link: "victoria-metrics-architecture" },
-          { text: "VictoriaMetrics 生产实践", link: "victoria-metrics-production" },
+        ],
+      },
+      {
+        text: "VictoriaMetrics",
+        icon: "bolt",
+        prefix: "tech/monitoring/victoria-metrics/",
+        children: [
+          { text: "架构与部署", link: "victoria-metrics-architecture" },
+          { text: "生产实践", link: "victoria-metrics-production" },
+        ],
+      },
+      {
+        text: "Grafana LGTM 栈",
+        icon: "chart-line",
+        prefix: "tech/monitoring/grafana-stack/",
+        children: [
           { text: "Grafana 可视化生态", link: "grafana-ecosystem" },
           { text: "Loki 日志聚合", link: "loki-architecture" },
           { text: "Loki 生产实践", link: "loki-production" },
           { text: "Tempo 分布式追踪", link: "grafana-tempo-tracing" },
-          { text: "OpenTelemetry 实践", link: "opentelemetry-practice" },
         ],
       },
       {

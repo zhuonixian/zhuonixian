@@ -1,6 +1,7 @@
 ---
 title: OpenTelemetry 可观测性统一实践
 icon: satellite-dish
+order: 2
 date: 2026-06-13
 category:
   - 技术

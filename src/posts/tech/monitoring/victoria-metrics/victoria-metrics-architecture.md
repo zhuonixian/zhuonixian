@@ -1,6 +1,7 @@
 ---
 title: VictoriaMetrics 架构与部署
 icon: bolt
+order: 1
 date: 2026-06-13
 category:
   - 技术

@@ -1,6 +1,7 @@
 ---
 title: Prometheus 核心架构与原理
 icon: fire
+order: 1
 date: 2026-06-13
 category:
   - 技术

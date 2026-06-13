@@ -1,6 +1,7 @@
 ---
 title: 云原生可观测性体系总览
 icon: tower-broadcast
+order: 1
 date: 2026-06-13
 category:
   - 技术

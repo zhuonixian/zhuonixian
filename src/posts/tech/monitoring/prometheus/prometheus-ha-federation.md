@@ -1,6 +1,7 @@
 ---
 title: Prometheus 高可用与长期存储
 icon: server
+order: 4
 date: 2026-06-13
 category:
   - 技术

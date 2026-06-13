@@ -1,6 +1,7 @@
 ---
 title: Grafana Tempo 分布式追踪
 icon: route
+order: 4
 date: 2026-06-13
 category:
   - 技术
